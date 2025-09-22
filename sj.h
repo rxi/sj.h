@@ -5,7 +5,6 @@
 #define SJ_H
 
 #include <stddef.h>
-#include <stdbool.h>
 
 typedef struct {
     char *data, *cur, *end;
@@ -23,8 +22,8 @@ enum { SJ_ERROR, SJ_END, SJ_ARRAY, SJ_OBJECT, SJ_NUMBER, SJ_STRING, SJ_BOOL, SJ_
 
 sj_Reader sj_reader(char *data, size_t len);
 sj_Value sj_read(sj_Reader *r);
-bool sj_iter_array(sj_Reader *r, sj_Value arr, sj_Value *val);
-bool sj_iter_object(sj_Reader *r, sj_Value obj, sj_Value *key, sj_Value *val);
+int sj_iter_array(sj_Reader *r, sj_Value arr, sj_Value *val);
+int sj_iter_object(sj_Reader *r, sj_Value obj, sj_Value *key, sj_Value *val);
 void sj_location(sj_Reader *r, int *line, int *col);
 
 #endif // #ifndef SJ_H
@@ -37,19 +36,19 @@ sj_Reader sj_reader(char *data, size_t len) {
 }
 
 
-static bool sj__is_number_cont(char c) {
+static int sj__is_number_cont(char c) {
     return (c >= '0' && c <= '9')
         ||  c == 'e' || c == 'E' || c == '.' || c == '-' || c == '+';
 }
 
-static bool sj__is_string(char *cur, char *end, char *expect) {
+static int sj__is_string(char *cur, char *end, char *expect) {
     while (*expect) {
         if (cur == end || *cur != *expect) {
-            return false;
+            return 0;
         }
         expect++, cur++;
     }
-    return true;
+    return 1;
 }
 
 
@@ -124,22 +123,22 @@ static void sj__discard_until(sj_Reader *r, int depth) {
 }
 
 
-bool sj_iter_array(sj_Reader *r, sj_Value arr, sj_Value *val) {
+int sj_iter_array(sj_Reader *r, sj_Value arr, sj_Value *val) {
     sj__discard_until(r, arr.depth);
     *val = sj_read(r);
-    if (val->type == SJ_ERROR || val->type == SJ_END) { return false; }
-    return true;
+    if (val->type == SJ_ERROR || val->type == SJ_END) { return 0; }
+    return 1;
 }
 
 
-bool sj_iter_object(sj_Reader *r, sj_Value obj, sj_Value *key, sj_Value *val) {
+int sj_iter_object(sj_Reader *r, sj_Value obj, sj_Value *key, sj_Value *val) {
     sj__discard_until(r, obj.depth);
     *key = sj_read(r);
-    if (key->type == SJ_ERROR || key->type == SJ_END) { return false; }
+    if (key->type == SJ_ERROR || key->type == SJ_END) { return 0; }
     *val = sj_read(r);
-    if (val->type == SJ_END)   { r->error = "unexpected object end"; return false; }
-    if (val->type == SJ_ERROR) { return false; }
-    return true;
+    if (val->type == SJ_END)   { r->error = "unexpected object end"; return 0; }
+    if (val->type == SJ_ERROR) { return 0; }
+    return 1;
 }
 
 
