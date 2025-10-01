@@ -19,6 +19,11 @@ typedef struct {
     int depth;
 } sj_Value;
 
+typedef struct {
+    char* cur;
+    int depth;
+} sj_SavedLocation;
+
 enum { SJ_ERROR, SJ_END, SJ_ARRAY, SJ_OBJECT, SJ_NUMBER, SJ_STRING, SJ_BOOL, SJ_NULL };
 
 sj_Reader sj_reader(char *data, size_t len);
@@ -26,6 +31,8 @@ sj_Value sj_read(sj_Reader *r);
 bool sj_iter_array(sj_Reader *r, sj_Value arr, sj_Value *val);
 bool sj_iter_object(sj_Reader *r, sj_Value obj, sj_Value *key, sj_Value *val);
 void sj_location(sj_Reader *r, int *line, int *col);
+sj_SavedLocation sj_save_location(sj_Reader* r);
+void sj_restore_location(sj_Reader* r, sj_SavedLocation saved_loc);
 
 #endif // #ifndef SJ_H
 
@@ -153,4 +160,14 @@ void sj_location(sj_Reader *r, int *line, int *col) {
     *col = cl;
 }
 
+
+sj_SavedLocation sj_save_location(sj_Reader* r) {
+    return (sj_SavedLocation){.cur = r->cur, .depth = r->depth};
+}
+
+
+void sj_restore_location(sj_Reader* r, sj_SavedLocation saved_loc) {
+    r->cur = saved_loc.cur;
+    r->depth = saved_loc.depth;
+}
 #endif // #ifdef SJ_IMPL
